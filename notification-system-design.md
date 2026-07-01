@@ -56,3 +56,50 @@ JSON
   "status": "success",
   "message": "Notification marked as read"
 }
+
+
+
+
+# Stage 2
+
+Persistent Storage Choice
+I'd recommend MySQL (using the default InnoDB storage engine). MySQL handles relational mapping between students and notifications efficiently, scales well when structured with composite indexes, and provides row-level locking for safe data modification.
+
+DB Schema
+students Table
+SQL
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL
+) ENGINE=InnoDB;
+notifications Table
+SQL
+CREATE TABLE notifications (
+    id VARCHAR(36) PRIMARY KEY, -- Stores UUIDs as strings
+    studentID INT NOT NULL,
+    notificationType ENUM('Placement', 'Result', 'Event') NOT NULL,
+    message TEXT NOT NULL,
+    isRead BOOLEAN DEFAULT FALSE,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (studentID) REFERENCES students(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+Potential Scale Issues & Solutions
+Data Growth: 5M+ notifications per month will bloat the table, hurting sequential scan times and indexing trees.
+
+Fix: Implement MySQL Native Table Partitioning by range on the createdAt column (e.g., partitioning tables by month). Set up automated background batch cron jobs to clean out or archive rows older than 6 months.
+
+Sample SQL Queries
+Fetch unread for a student:
+
+SQL
+SELECT id, notificationType, message, createdAt 
+FROM notifications 
+WHERE studentID = 1042 AND isRead = FALSE 
+ORDER BY createdAt DESC;
+Mark as read:
+
+SQL
+UPDATE notifications 
+SET isRead = TRUE 
+WHERE id = 'b283218f-ea5a-4b7c-93a9-1f2f240d64b0';
