@@ -285,3 +285,52 @@ AND createdAt >= NOW() - INTERVAL 7 DAY;
 ```
 
 This query returns all placement notifications created during the last seven days.
+
+# Stage 4
+
+## Problem
+
+If every user loads notifications directly from the database every time they open the app, the database gets too many requests. This increases the load and makes the application slower when many users are using it at the same time.
+
+---
+
+## Solution 1: Redis Cache
+
+Store the frequently used notifications (like the latest Top 10) in Redis.
+
+### Advantages
+
+- Very fast response.
+- Reduces the number of database queries.
+- Improves application performance.
+
+### Disadvantages
+
+- Cache needs to be updated whenever a notification is added or modified.
+- Adds some extra maintenance.
+
+---
+
+## Solution 2: MySQL Read Replicas
+
+Use one main database for writing data and multiple read replicas for fetching notifications.
+
+### Advantages
+
+- Handles more users at the same time.
+- Reduces the load on the main database.
+
+### Disadvantages
+
+- New notifications may take a few seconds to appear because of replication delay.
+
+---
+
+## Recommendation
+
+A good approach is to use both:
+
+- Use **Redis** to quickly serve the latest notifications.
+- Use the **composite index** created in Stage 3 to make database queries faster.
+
+This combination improves performance and reduces the load on the database.
